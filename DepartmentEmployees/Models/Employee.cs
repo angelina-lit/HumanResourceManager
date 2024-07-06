@@ -7,7 +7,7 @@ namespace DepartmentEmployees.Models
 	{
 		[Key]
 		[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-		public int EmployeeId { get; set; }
+		public int Id { get; set; }
 		public string FullName { get; set; }
 		public string Post { get; set; }
 	}

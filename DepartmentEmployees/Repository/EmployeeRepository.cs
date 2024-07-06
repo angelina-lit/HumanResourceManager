@@ -6,15 +6,17 @@ namespace DepartmentEmployees.Repository
 {
 	public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
 	{
-		private ApplicationDbContext _db;
+		private readonly ApplicationDbContext _db;
 		public EmployeeRepository(ApplicationDbContext db) : base(db)
 		{
 			_db = db;
 		}
 
-		public void Update(Employee obj)
+		public async Task<Employee> UpdateAsync(Employee entity)
 		{
-			_db.Employees.Update(obj);
+			_db.Employees.Update(entity);
+			await _db.SaveChangesAsync();
+			return entity;
 		}
 	}
 }

@@ -1,9 +1,11 @@
-﻿using DepartmentEmployees.Data;
-using DepartmentEmployees.Models;
+﻿using DepartmentEmployees.Models;
 using DepartmentEmployees.Models.Dto;
 using DepartmentEmployees.Repository.IRepository;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Net;
 
 namespace DepartmentEmployees.Controllers
 {
@@ -12,126 +14,210 @@ namespace DepartmentEmployees.Controllers
 	public class EmployeeAPIController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
+		private readonly APIResponse _response;
 
 		public EmployeeAPIController(IUnitOfWork unitOfWork)
 		{
 			_unitOfWork = unitOfWork;
+			_response = new();
 		}
 
 		[HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
-		public ActionResult<IEnumerable<EmployeeDTO>> GetEmployees()
+		public ActionResult<APIResponse> GetEmployees()
 		{
-			/*List<Employee> objEmployeeList = _unitOfWork.Employee.GetAll().ToList();
-			return Ok(ListOfEmployees.employeeList);*/
-			return Ok(ListOfEmployees.employeeList);
+			try
+			{
+				IEnumerable<Employee> employeeList = _unitOfWork.Employee.GetAllAsync().Result;
+				_response.StatusCode = HttpStatusCode.OK;
+				_response.Result = employeeList;
+				return Ok(_response);
+			}
+			catch (Exception ex)
+			{
+				_response.IsSuccess = false;
+				_response.ErrorMessages = new List<string>() { ex.ToString() };
+			}
+			return _response;
 		}
 
 		[HttpGet("{id:int}", Name = "GetEmployee")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status403Forbidden)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
-		public ActionResult<EmployeeDTO> GetEmployee(int id)
+		public async Task<ActionResult<APIResponse>> GetEmployee(int id)
 		{
-			if (id == 0)
+			try
 			{
-				return BadRequest();
-			}
-			var employee = ListOfEmployees.employeeList.FirstOrDefault(u => u.Id == id);
+				if (id == 0)
+				{
+					_response.StatusCode = HttpStatusCode.BadRequest;
+					return BadRequest(_response);
+				}
 
-			if (employee == null)
-			{
-				return NotFound();
+				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id);
+
+				if (employee == null)
+				{
+					_response.ErrorMessages = new List<string>() { "There is no employee with this ID" };
+					_response.IsSuccess = false;
+					_response.StatusCode = HttpStatusCode.NotFound;
+					return NotFound(_response);
+				}
+
+				_response.StatusCode = HttpStatusCode.OK;
+				_response.Result = employee;
+				return Ok(_response);
+
 			}
-			return Ok(employee);
+			catch (Exception ex)
+			{
+				_response.IsSuccess = false;
+				_response.ErrorMessages = new List<string>() { ex.ToString() };
+			}
+			return _response;
 		}
 
 		[HttpPost]
 		[ProducesResponseType(StatusCodes.Status201Created)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public ActionResult<EmployeeDTO> CreateEmployee([FromBody] EmployeeDTO employeeDTO)
+		public async Task<ActionResult<APIResponse>> CreateEmployee([FromBody] EmployeeCreateDTO createDTO)
 		{
-			/*if (!ModelState.IsValid)
+			try
 			{
-				return BadRequest(ModelState);
-			}*/
-			if (ListOfEmployees.employeeList.FirstOrDefault(u => u.FullName.ToLower() == employeeDTO.FullName.ToLower()) != null)
-			{
-				ModelState.AddModelError("CustomError", "Employee already Exists!");
-				return BadRequest(ModelState);
-			}
+				if (await _unitOfWork.Employee.GetAsync(u => u.FullName.ToLower() == createDTO.FullName.ToLower()) != null)
+				{
+					ModelState.AddModelError("ErrorMessage", "An employee with the same name already exists");
+					return BadRequest(ModelState);
+				}
 
-			if (employeeDTO == null)
-			{
-				return BadRequest(employeeDTO);
-			}
-			if (employeeDTO.Id > 0)
-			{
-				return StatusCode(StatusCodes.Status500InternalServerError);
-			}
+				if (createDTO == null)
+					return BadRequest();
 
-			employeeDTO.Id = ListOfEmployees.employeeList.OrderByDescending(u => u.Id).FirstOrDefault().Id + 1;
-			ListOfEmployees.employeeList.Add(employeeDTO);
+				Employee model = new()
+				{
+					FullName = createDTO.FullName,
+					Post = createDTO.Post,
+				};
 
-			return CreatedAtRoute("GetEmployee", new { id = employeeDTO.Id }, employeeDTO);
+				await _unitOfWork.Employee.CreateAsync(model);
+				//_unitOfWork.Save();
+				_response.Result = model;
+				_response.StatusCode = HttpStatusCode.Created;
+				return CreatedAtRoute("GetEmployee", new { id = model.Id }, _response);
+			}
+			catch (Exception ex)
+			{
+				_response.IsSuccess = false;
+				_response.ErrorMessages = new List<string>() { ex.ToString() };
+			}
+			return _response;
 		}
 
 		[HttpDelete("{id:int}", Name = "DeleteEmployee")]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
+		[ProducesResponseType(StatusCodes.Status403Forbidden)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
-		public IActionResult DeleteEmployee(int id)
+		public async Task<ActionResult<APIResponse>> DeleteEmployee(int id)
 		{
-			if (id == 0)
+			try
 			{
-				return BadRequest();
+				if (id == 0) 
+					return BadRequest();
+
+				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id);
+
+				if (employee == null) 
+					return NotFound();
+
+				await _unitOfWork.Employee.RemoveAsync(employee);
+				_response.StatusCode = HttpStatusCode.NoContent;
+				return Ok(_response);
 			}
-			var employee = ListOfEmployees.employeeList.FirstOrDefault(u => u.Id == id);
-			if (employee == null)
+			catch (Exception ex)
 			{
-				return NotFound();
+				_response.IsSuccess = false;
+				_response.ErrorMessages = new List<string>() { ex.ToString() };
 			}
-			ListOfEmployees.employeeList.Remove(employee);
-			return NoContent();
+			return _response;
 		}
 
 		[HttpPut("{id:int}", Name = "UpdateEmployee")]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
-		public IActionResult UpdateEmployee(int id, [FromBody] EmployeeDTO employeeDTO)
+		public async Task<ActionResult<APIResponse>> UpdateEmployee(int id, [FromBody] EmployeeUpdateDTO updateDTO)
 		{
-			if (employeeDTO == null || id != employeeDTO.Id)
+			try
 			{
-				return BadRequest();
-			}
-			var employee = ListOfEmployees.employeeList.FirstOrDefault(u => u.Id == id);
-			employee.FullName = employeeDTO.FullName;
-			employee.Post = employeeDTO.Post;
+				_response.ErrorMessages = new List<string>();
+				if (updateDTO.FullName!=null)
+				{
+					_response.ErrorMessages.Add("Изменение поля FullName запрещено");
+				}
 
-			return NoContent();
+				if (updateDTO == null || id != updateDTO.Id) return BadRequest();
+				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
+
+				Employee model = new()
+				{
+					Id = updateDTO.Id,
+					FullName = employee.FullName,
+					Post = updateDTO.Post,
+				};
+				
+				await _unitOfWork.Employee.UpdateAsync(model);
+				_response.Result = model;
+				_response.StatusCode = HttpStatusCode.NoContent;
+				return Ok(_response);
+			}
+			catch (Exception ex)
+			{
+				_response.IsSuccess = false;
+				_response.ErrorMessages = new List<string>() { ex.ToString() };
+			}
+			return _response;
 		}
+		
+		
 
 		[HttpPatch("{id:int}", Name = "UpdatePartialEmployee")]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
-		public IActionResult UpdatePartialEmployee(int id, JsonPatchDocument<EmployeeDTO> patchDTO)
+		public async Task<IActionResult> UpdatePartialEmployee(int id, JsonPatchDocument<EmployeePatchDTO> patchDTO)
 		{
-			if (patchDTO == null || id == 0)
+			_response.ErrorMessages = new List<string>();
+			if (patchDTO.Operations.Any(op => op.path.ToLower().Equals("/fullname", StringComparison.OrdinalIgnoreCase)))
 			{
-				return BadRequest();
+				_response.ErrorMessages.Add("Изменение поля FullName запрещено");
 			}
-			var employee = ListOfEmployees.employeeList.FirstOrDefault(u => u.Id == id);
-			if (employee == null)
+
+			if (patchDTO == null || id == 0) return BadRequest();
+		
+			var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
+
+			EmployeePatchDTO employeeDTO = new()
 			{
-				return BadRequest();
-			}
-			patchDTO.ApplyTo(employee, ModelState);
-			if (!ModelState.IsValid)
+				Id = employee.Id,
+				Post = employee.Post,
+			};
+
+			if (employee == null) return BadRequest(_response);
+
+			patchDTO.ApplyTo(employeeDTO, ModelState);
+
+			Employee model = new()
 			{
-				return BadRequest(ModelState);
-			}
-			return NoContent();
+				Id = employeeDTO.Id,
+				FullName = employee.FullName,
+				Post = employeeDTO.Post,
+			};
+
+			if (!ModelState.IsValid) return BadRequest(_response);
+			await _unitOfWork.Employee.UpdateAsync(model);
+			return Ok();
 		}
 	}
 }

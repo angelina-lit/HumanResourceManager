@@ -12,64 +12,52 @@ namespace DepartmentEmployees.Repository
 		public Repository(ApplicationDbContext db)
 		{
 			_db = db;
-			dbSet = _db.Set<T>();
-			//_db.Employees.Include(u => u.Category).Include(u => u.CategoryId);
+			this.dbSet = _db.Set<T>();
 		}
-
-		public void Add(T entity)
+		public async Task CreateAsync(T entity)
 		{
-			dbSet.Add(entity);
+			await dbSet.AddAsync(entity);
+			await SaveAsync();
 		}
 
-		public T Get(Expression<Func<T, bool>> filter, string? includeProperties = null, bool tracked = false)
-		{
-			IQueryable<T> query;
-			if (tracked)
-			{
-				query = dbSet;
-			}
-			else
-			{
-				query = dbSet.AsNoTracking();
-			}
-
-			query = query.Where(filter);
-			if (!string.IsNullOrEmpty(includeProperties))
-			{
-				foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-				{
-					query = query.Include(includeProp);
-				}
-			}
-			return query.FirstOrDefault();
-		}
-
-		public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter, string? includeProperties = null)
+		public async Task<T> GetAsync(Expression<Func<T, bool>> filter = null, bool tracked = true, string? includeProperties = null)
 		{
 			IQueryable<T> query = dbSet;
-
-			if (filter != null)
-			{
-				query = query.Where(filter);
-			}
-			if (!string.IsNullOrEmpty(includeProperties))
+			if (!tracked) query = query.AsNoTracking();
+			if (filter != null) query = query.Where(filter);
+			if (includeProperties != null)
 			{
 				foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
 				{
 					query = query.Include(includeProp);
 				}
 			}
-			return query.ToList();
+			return await query.FirstOrDefaultAsync();
 		}
 
-		public void Remove(T entity)
+		public async Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null)
+		{
+			IQueryable<T> query = dbSet;
+			if (filter != null) query = query.Where(filter);
+			if (includeProperties != null)
+			{
+				foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+				{
+					query = query.Include(includeProp);
+				}
+			}
+			return await query.ToListAsync();
+		}
+
+		public async Task RemoveAsync(T entity)
 		{
 			dbSet.Remove(entity);
+			await SaveAsync();
 		}
 
-		public void RemoveRange(IEnumerable<T> entity)
+		public async Task SaveAsync()
 		{
-			dbSet.RemoveRange(entity);
+			await _db.SaveChangesAsync();
 		}
 	}
 }
