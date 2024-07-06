@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DepartmentEmployees.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DepartmentEmployees.Data
 {
 	public class ApplicationDbContext : DbContext
 	{
 		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+		public DbSet<Employee> Employees { get; set; }
 	}
 }
