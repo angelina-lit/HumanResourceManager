@@ -4,6 +4,6 @@ namespace DepartmentEmployees.Repository.IRepository
 {
     public interface IEmployeeRepository : IRepository<Employee>
 	{
-		Employee Update(Employee entity);
+		Task<Employee> UpdateAsync(Employee entity);
 	}
 }

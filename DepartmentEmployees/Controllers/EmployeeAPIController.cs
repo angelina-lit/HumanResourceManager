@@ -126,7 +126,7 @@ namespace DepartmentEmployees.Controllers
 
 				if (employee == null) return NotFound();
 
-				_unitOfWork.Employee.Remove(employee);
+				await _unitOfWork.Employee.RemoveAsync(employee);
 				await _unitOfWork.SaveAsync();
 				_response.StatusCode = HttpStatusCode.OK;
 				return Ok(_response);
@@ -162,7 +162,7 @@ namespace DepartmentEmployees.Controllers
 					Role = updateDTO.Role,
 				};
 
-				_unitOfWork.Employee.Update(model);
+				await _unitOfWork.Employee.UpdateAsync(model);
 				await _unitOfWork.SaveAsync();
 				_response.Result = model;
 				_response.StatusCode = HttpStatusCode.OK;
@@ -211,7 +211,7 @@ namespace DepartmentEmployees.Controllers
 
 			if (!ModelState.IsValid) return BadRequest(_response);
 
-			_unitOfWork.Employee.Update(model);
+			await _unitOfWork.Employee.UpdateAsync(model);
 			await _unitOfWork.SaveAsync();
 			_response.Result = model;
 			_response.StatusCode = HttpStatusCode.OK;

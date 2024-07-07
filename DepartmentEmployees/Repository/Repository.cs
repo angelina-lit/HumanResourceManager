@@ -48,9 +48,14 @@ namespace DepartmentEmployees.Repository
 			return await query.ToListAsync();
 		}
 
-		public void Remove(T entity)
+		/*public void Remove(T entity)
 		{
 			dbSet.Remove(entity);
+		}*/
+
+		public async Task RemoveAsync(T entity)
+		{
+			await Task.Run(() => dbSet.Remove(entity));
 		}
 	}
 }

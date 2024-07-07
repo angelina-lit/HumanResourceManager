@@ -12,9 +12,14 @@ namespace DepartmentEmployees.Repository
 			_db = db;
 		}
 
-		public Employee Update(Employee entity)
+		/*public Employee Update(Employee entity)
 		{
 			_db.Employees.Update(entity);
+			return entity;
+		}*/
+		public async Task<Employee> UpdateAsync(Employee entity)
+		{
+			await Task.Run(() => _db.Employees.Update(entity));
 			return entity;
 		}
 	}
