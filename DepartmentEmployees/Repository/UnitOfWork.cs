@@ -13,5 +13,10 @@ namespace DepartmentEmployees.Repository
 			_db = db;
 			Employee = new EmployeeRepository(_db);
 		}
+
+		public async Task SaveAsync()
+		{
+			await _db.SaveChangesAsync();
+		}
 	}
 }

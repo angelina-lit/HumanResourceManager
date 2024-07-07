@@ -1,10 +1,9 @@
 ﻿using DepartmentEmployees.Models;
-using DepartmentEmployees.Models.Dto;
+using DepartmentEmployees.Models.Employee;
+using DepartmentEmployees.Models.Employee.Dto;
 using DepartmentEmployees.Repository.IRepository;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Net;
 
 namespace DepartmentEmployees.Controllers
@@ -43,7 +42,6 @@ namespace DepartmentEmployees.Controllers
 
 		[HttpGet("{id:int}", Name = "GetEmployee")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
-		[ProducesResponseType(StatusCodes.Status403Forbidden)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		public async Task<ActionResult<APIResponse>> GetEmployee(int id)
@@ -69,7 +67,6 @@ namespace DepartmentEmployees.Controllers
 				_response.StatusCode = HttpStatusCode.OK;
 				_response.Result = employee;
 				return Ok(_response);
-
 			}
 			catch (Exception ex)
 			{
@@ -80,9 +77,9 @@ namespace DepartmentEmployees.Controllers
 		}
 
 		[HttpPost]
+		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status201Created)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
-		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 		public async Task<ActionResult<APIResponse>> CreateEmployee([FromBody] EmployeeCreateDTO createDTO)
 		{
 			try
@@ -93,17 +90,16 @@ namespace DepartmentEmployees.Controllers
 					return BadRequest(ModelState);
 				}
 
-				if (createDTO == null)
-					return BadRequest();
+				if (createDTO == null) return BadRequest();
 
 				Employee model = new()
 				{
 					FullName = createDTO.FullName,
-					Post = createDTO.Post,
+					Role = createDTO.Role,
 				};
 
 				await _unitOfWork.Employee.CreateAsync(model);
-				//_unitOfWork.Save();
+				await _unitOfWork.SaveAsync();
 				_response.Result = model;
 				_response.StatusCode = HttpStatusCode.Created;
 				return CreatedAtRoute("GetEmployee", new { id = model.Id }, _response);
@@ -117,24 +113,22 @@ namespace DepartmentEmployees.Controllers
 		}
 
 		[HttpDelete("{id:int}", Name = "DeleteEmployee")]
-		[ProducesResponseType(StatusCodes.Status204NoContent)]
-		[ProducesResponseType(StatusCodes.Status403Forbidden)]
+		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		public async Task<ActionResult<APIResponse>> DeleteEmployee(int id)
 		{
 			try
 			{
-				if (id == 0) 
-					return BadRequest();
+				if (id == 0) return BadRequest();
 
 				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id);
 
-				if (employee == null) 
-					return NotFound();
+				if (employee == null) return NotFound();
 
-				await _unitOfWork.Employee.RemoveAsync(employee);
-				_response.StatusCode = HttpStatusCode.NoContent;
+				_unitOfWork.Employee.Remove(employee);
+				await _unitOfWork.SaveAsync();
+				_response.StatusCode = HttpStatusCode.OK;
 				return Ok(_response);
 			}
 			catch (Exception ex)
@@ -146,31 +140,32 @@ namespace DepartmentEmployees.Controllers
 		}
 
 		[HttpPut("{id:int}", Name = "UpdateEmployee")]
-		[ProducesResponseType(StatusCodes.Status204NoContent)]
+		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		public async Task<ActionResult<APIResponse>> UpdateEmployee(int id, [FromBody] EmployeeUpdateDTO updateDTO)
 		{
 			try
 			{
-				_response.ErrorMessages = new List<string>();
-				if (updateDTO.FullName!=null)
+				if (updateDTO.FullName != null)
 				{
-					_response.ErrorMessages.Add("Изменение поля FullName запрещено");
+					_response.ErrorMessages = new List<string>() { "Changing the FullName field is prohibited, the previous value is retained" };
 				}
 
 				if (updateDTO == null || id != updateDTO.Id) return BadRequest();
+
 				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
 
 				Employee model = new()
 				{
 					Id = updateDTO.Id,
 					FullName = employee.FullName,
-					Post = updateDTO.Post,
+					Role = updateDTO.Role,
 				};
-				
-				await _unitOfWork.Employee.UpdateAsync(model);
+
+				_unitOfWork.Employee.Update(model);
+				await _unitOfWork.SaveAsync();
 				_response.Result = model;
-				_response.StatusCode = HttpStatusCode.NoContent;
+				_response.StatusCode = HttpStatusCode.OK;
 				return Ok(_response);
 			}
 			catch (Exception ex)
@@ -180,28 +175,27 @@ namespace DepartmentEmployees.Controllers
 			}
 			return _response;
 		}
-		
-		
 
 		[HttpPatch("{id:int}", Name = "UpdatePartialEmployee")]
-		[ProducesResponseType(StatusCodes.Status204NoContent)]
+		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		public async Task<IActionResult> UpdatePartialEmployee(int id, JsonPatchDocument<EmployeePatchDTO> patchDTO)
 		{
-			_response.ErrorMessages = new List<string>();
 			if (patchDTO.Operations.Any(op => op.path.ToLower().Equals("/fullname", StringComparison.OrdinalIgnoreCase)))
 			{
-				_response.ErrorMessages.Add("Изменение поля FullName запрещено");
+				_response.IsSuccess = false;
+				_response.StatusCode = HttpStatusCode.BadRequest;
+				_response.ErrorMessages = new List<string>() { "Changing the FullName field is prohibited" };
 			}
 
 			if (patchDTO == null || id == 0) return BadRequest();
-		
+
 			var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
 
 			EmployeePatchDTO employeeDTO = new()
 			{
 				Id = employee.Id,
-				Post = employee.Post,
+				Role = employee.Role,
 			};
 
 			if (employee == null) return BadRequest(_response);
@@ -212,12 +206,16 @@ namespace DepartmentEmployees.Controllers
 			{
 				Id = employeeDTO.Id,
 				FullName = employee.FullName,
-				Post = employeeDTO.Post,
+				Role = employeeDTO.Role,
 			};
 
 			if (!ModelState.IsValid) return BadRequest(_response);
-			await _unitOfWork.Employee.UpdateAsync(model);
-			return Ok();
+
+			_unitOfWork.Employee.Update(model);
+			await _unitOfWork.SaveAsync();
+			_response.Result = model;
+			_response.StatusCode = HttpStatusCode.OK;
+			return Ok(_response);
 		}
 	}
 }

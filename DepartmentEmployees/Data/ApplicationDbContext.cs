@@ -1,9 +1,9 @@
-﻿using DepartmentEmployees.Models;
+﻿using DepartmentEmployees.Models.Employee;
 using Microsoft.EntityFrameworkCore;
 
 namespace DepartmentEmployees.Data
 {
-	public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : DbContext
 	{
 		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 

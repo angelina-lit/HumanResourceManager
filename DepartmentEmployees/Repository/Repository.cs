@@ -17,7 +17,6 @@ namespace DepartmentEmployees.Repository
 		public async Task CreateAsync(T entity)
 		{
 			await dbSet.AddAsync(entity);
-			await SaveAsync();
 		}
 
 		public async Task<T> GetAsync(Expression<Func<T, bool>> filter = null, bool tracked = true, string? includeProperties = null)
@@ -49,15 +48,9 @@ namespace DepartmentEmployees.Repository
 			return await query.ToListAsync();
 		}
 
-		public async Task RemoveAsync(T entity)
+		public void Remove(T entity)
 		{
 			dbSet.Remove(entity);
-			await SaveAsync();
-		}
-
-		public async Task SaveAsync()
-		{
-			await _db.SaveChangesAsync();
 		}
 	}
 }
