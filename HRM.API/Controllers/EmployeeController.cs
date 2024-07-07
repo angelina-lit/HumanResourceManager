@@ -8,14 +8,14 @@ using System.Net;
 
 namespace HRM.API.Controllers
 {
-	[Route("api/EmployeeAPI")]
+	[Route("api/Employee")]
 	[ApiController]
-	public class EmployeeAPIController : ControllerBase
+	public class EmployeeController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly APIResponse _response;
 
-		public EmployeeAPIController(IUnitOfWork unitOfWork)
+		public EmployeeController(IUnitOfWork unitOfWork)
 		{
 			_unitOfWork = unitOfWork;
 			_response = new();
@@ -146,12 +146,12 @@ namespace HRM.API.Controllers
 		{
 			try
 			{
+				if (updateDTO == null || id != updateDTO.Id) return BadRequest();
+
 				if (updateDTO.FullName != null)
 				{
 					_response.ErrorMessages = new List<string>() { "Changing the FullName field is prohibited, the previous value is retained" };
 				}
-
-				if (updateDTO == null || id != updateDTO.Id) return BadRequest();
 
 				var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
 
@@ -179,20 +179,18 @@ namespace HRM.API.Controllers
 		[HttpPatch("{id:int}", Name = "UpdatePartialEmployee")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
-		public async Task<IActionResult> UpdatePartialEmployee(int id, JsonPatchDocument<EmployeePatchDTO> patchDTO)
+		public async Task<IActionResult> UpdatePartialEmployee(int id, JsonPatchDocument<EmployeeUpdateDTO> patchDTO)
 		{
+			if (patchDTO == null || id == 0) return BadRequest();
+
 			if (patchDTO.Operations.Any(op => op.path.ToLower().Equals("/fullname", StringComparison.OrdinalIgnoreCase)))
 			{
-				_response.IsSuccess = false;
-				_response.StatusCode = HttpStatusCode.BadRequest;
-				_response.ErrorMessages = new List<string>() { "Changing the FullName field is prohibited" };
+				_response.ErrorMessages = new List<string>() { "Changing the FullName field is prohibited, the previous value is retained" };
 			}
-
-			if (patchDTO == null || id == 0) return BadRequest();
 
 			var employee = await _unitOfWork.Employee.GetAsync(u => u.Id == id, tracked: false);
 
-			EmployeePatchDTO employeeDTO = new()
+			EmployeeUpdateDTO employeeDTO = new()
 			{
 				Id = employee.Id,
 				Role = employee.Role,
