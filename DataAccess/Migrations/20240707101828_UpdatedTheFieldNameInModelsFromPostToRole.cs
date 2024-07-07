@@ -2,27 +2,27 @@
 
 #nullable disable
 
-namespace DepartmentEmployees.Migrations
+namespace DepartmentEmployees.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdatingTheIdInTheEmployeeTable : Migration
+    public partial class UpdatedTheFieldNameInModelsFromPostToRole : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
-                name: "EmployeeId",
+                name: "Post",
                 table: "Employees",
-                newName: "Id");
+                newName: "Role");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
-                name: "Id",
+                name: "Role",
                 table: "Employees",
-                newName: "EmployeeId");
+                newName: "Post");
         }
     }
 }

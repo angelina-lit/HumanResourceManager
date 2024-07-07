@@ -1,7 +1,7 @@
-﻿using DepartmentEmployees.Models;
+﻿using DepartmentEmployees.DataAccess.Repository.IRepository;
+using DepartmentEmployees.Models;
 using DepartmentEmployees.Models.Employee;
 using DepartmentEmployees.Models.Employee.Dto;
-using DepartmentEmployees.Repository.IRepository;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;

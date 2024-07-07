@@ -1,6 +1,6 @@
 ﻿using DepartmentEmployees.Models.Employee;
 
-namespace DepartmentEmployees.Repository.IRepository
+namespace DepartmentEmployees.DataAccess.Repository.IRepository
 {
     public interface IEmployeeRepository : IRepository<Employee>
 	{

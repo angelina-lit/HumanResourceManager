@@ -1,6 +1,6 @@
-using DepartmentEmployees.Data;
-using DepartmentEmployees.Repository.IRepository;
-using DepartmentEmployees.Repository;
+using DepartmentEmployees.DataAccess.Data;
+using DepartmentEmployees.DataAccess.Repository;
+using DepartmentEmployees.DataAccess.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

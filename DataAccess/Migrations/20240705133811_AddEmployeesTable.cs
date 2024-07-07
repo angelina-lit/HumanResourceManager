@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace DepartmentEmployees.Migrations
+namespace DepartmentEmployees.DataAccess.Migrations
 {
     /// <inheritdoc />
     public partial class AddEmployeesTable : Migration

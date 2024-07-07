@@ -1,9 +1,9 @@
-﻿using DepartmentEmployees.Data;
-using DepartmentEmployees.Repository.IRepository;
+﻿using DepartmentEmployees.DataAccess.Data;
+using DepartmentEmployees.DataAccess.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace DepartmentEmployees.Repository
+namespace DepartmentEmployees.DataAccess.Repository
 {
 	public class Repository<T> : IRepository<T> where T : class
 	{
@@ -47,11 +47,6 @@ namespace DepartmentEmployees.Repository
 			}
 			return await query.ToListAsync();
 		}
-
-		/*public void Remove(T entity)
-		{
-			dbSet.Remove(entity);
-		}*/
 
 		public async Task RemoveAsync(T entity)
 		{

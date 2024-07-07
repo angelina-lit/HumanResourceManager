@@ -1,4 +1,4 @@
-﻿namespace DepartmentEmployees.Repository.IRepository
+﻿namespace DepartmentEmployees.DataAccess.Repository.IRepository
 {
 	public interface IUnitOfWork
 	{

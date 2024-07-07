@@ -1,7 +1,7 @@
-﻿using DepartmentEmployees.Data;
-using DepartmentEmployees.Repository.IRepository;
+﻿using DepartmentEmployees.DataAccess.Data;
+using DepartmentEmployees.DataAccess.Repository.IRepository;
 
-namespace DepartmentEmployees.Repository
+namespace DepartmentEmployees.DataAccess.Repository
 {
 	public class UnitOfWork : IUnitOfWork
 	{
